@@ -8,7 +8,7 @@ export const validateApiKey = (req, res, next) => {
     if (type !== "Bearer" || !token)
       throw new Error("Invalid Authorization Parameters");
 
-    if (token !== process.env.SECRET_KEY)
+    if (token !== process.env.COMPILER_SERVICE_API_KEY)
       throw new Error("Forbidden Access - Access Denied");
 
     console.log(`Access Granted!`);

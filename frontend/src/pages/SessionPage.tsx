@@ -1,4 +1,4 @@
-import { useEffect, useState, type SetStateAction } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
 import { socket } from "../services/socket";
@@ -76,7 +76,7 @@ export default function SessionPage() {
         body: JSON.stringify({
           language: "cpp",
           code: studentCode,
-          stdin,
+          stdin: stdin, //you can also write just stdin
         }),
       });
 
