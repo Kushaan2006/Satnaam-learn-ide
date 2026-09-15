@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { redisClient } from "../config/redisClient";
+import { redisClient } from "../config/redisClient.js";
 
 const rooms = new Map();
 
@@ -26,12 +26,16 @@ export async function createTeacherRoom(teacherSocketId) {
     .update(recoveryToken)
     .digest("hex");
 
+  console.log("Teacher recovery token created");
+
   await redisClient.hSet(`room:${roomId}`, {
     teacherTokenHash: recoverTokenHash,
     studentTokenHash: "",
     teacherConnected: "true",
     studentConnected: "false",
   });
+
+  console.log("Room+Teacher Created");
 
   return { roomId, recoveryToken };
 }
@@ -58,10 +62,14 @@ export async function joinStudentRoom(roomId, studentSocketId) {
     .update(recoveryToken)
     .digest("hex");
 
+  console.log("Student Recovery Token Created");
+
   await redisClient.hSet(`room:${roomId}`, {
     studentTokenHash: recoveryTokenHash,
     studentConnected: "true",
   });
+
+  console.log("Student data added to database");
 
   return {
     room,
@@ -80,7 +88,6 @@ export async function removeUserFromRoom(roomId, role) {
     await redisClient.hSet(`room:${roomId}`, {
       teacherConnected: "false",
     });
-    return;
   }
 
   if (role === "student") {
@@ -89,14 +96,59 @@ export async function removeUserFromRoom(roomId, role) {
     });
   }
 
+  console.log(`Set ${role}'s connected status to false`);
+
   const updatedRoom = await redisClient.hGetAll(`room:${roomId}`);
   const bothDisconnected =
     updatedRoom.teacherConnected === "false" &&
     updatedRoom.studentConnected === "false";
+  console.log("checking room connection status");
 
   if (bothDisconnected) {
     await redisClient.expire(`room:${roomId}`, 7 * 60);
+    console.log("Expiry timer statred of 7mins on Room: ", roomId);
   }
+}
+
+export async function rejoinRoom(roomId, role, recoveryToken) {
+  const room = await redisClient.hGetAll(`room:${roomId}`);
+
+  if (Object.keys(room).length === 0) {
+    return {
+      error: "Room no longer exists.",
+    };
+  }
+
+  const recoveryTokenHash = crypto
+    .createHash("sha256")
+    .update(recoveryToken)
+    .digest("hex");
+
+  const storedTokenHash =
+    role === "teacher" ? room.teacherTokenHash : room.studentTokenHash;
+
+  if (recoveryTokenHash !== storedTokenHash) {
+    return {
+      error: "Invalid recovery token.",
+    };
+  }
+
+  console.log(`Tokens Matched in ${roomId} for ${role}`);
+
+  await redisClient.persist(`room:${roomId}`);
+
+  console.log(`Reset ${roomId} expiry timer`);
+
+  await redisClient.hSet(`room:${roomId}`, {
+    [`${role}Connected`]: "true",
+  });
+
+  console.log(`Set ${role}'s connection status in ${roomId} to connected`);
+
+  return {
+    roomId,
+    role,
+  };
 }
 
 // export { createTeacherRoom, joinStudentRoom, removeUserFromRoom };

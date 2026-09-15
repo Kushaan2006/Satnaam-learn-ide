@@ -17,6 +17,26 @@ export default function JoinRoomPage() {
 
   const navigate = useNavigate();
 
+  const getSavedSessions = () => {
+    const sessions = [];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+
+      if (!key?.startsWith("coderoom:")) continue;
+
+      const [, roomId, role] = key.split(":");
+
+      sessions.push({
+        key,
+        roomId,
+        role,
+      });
+    }
+
+    return sessions;
+  };
+
   useEffect(() => {
     const handleJoinedRoom = (payload: JoinRoomPayload) => {
       const key = `coderoom:${payload.roomId}:${payload.role}`;
@@ -29,6 +49,8 @@ export default function JoinRoomPage() {
         }),
       );
 
+      console.log(`Initialized recovery state for ${payload.roomId}`);
+
       navigate(`/session/${payload.roomId}`, {
         state: payload,
       });
@@ -40,6 +62,9 @@ export default function JoinRoomPage() {
     const handleJoinError = (message: string) => {
       setErrorMessage(message);
     };
+
+    const sessions = getSavedSessions();
+    console.log("Sessions found: ", sessions);
 
     socket.on("joined-room", handleJoinedRoom);
     socket.on("join-error", handleJoinError);
