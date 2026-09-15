@@ -4,6 +4,7 @@ export interface JoinRoomPayload {
   username: string;
   roomId: string;
   role: Role;
+  recoveryToken?: string;
 }
 
 export interface CodeSelection {

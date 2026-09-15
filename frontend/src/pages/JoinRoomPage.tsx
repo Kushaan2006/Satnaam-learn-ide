@@ -19,6 +19,16 @@ export default function JoinRoomPage() {
 
   useEffect(() => {
     const handleJoinedRoom = (payload: JoinRoomPayload) => {
+      const key = `coderoom:${payload.roomId}:${payload.role}`;
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          recoveryToken: payload.recoveryToken,
+          myCode: "",
+          otherCode: "",
+        }),
+      );
+
       navigate(`/session/${payload.roomId}`, {
         state: payload,
       });
@@ -48,6 +58,7 @@ export default function JoinRoomPage() {
         throw new Error("Backed Connection Failed ;-;");
       }
     } catch (error) {
+      console.log("Error connecting to Backend: ", error);
       setErrorMessage("Could not Connect to Backend");
       return false;
     }

@@ -9,7 +9,7 @@ export function roomSocketHandler(socket) {
   socket.data.role = null;
   socket.data.username = null;
 
-  socket.on("join-room", (payload) => {
+  socket.on("join-room", async (payload) => {
     if (socket.data.roomId) {
       socket.emit("join-error", "You are already in a room.");
       return;
@@ -22,11 +22,12 @@ export function roomSocketHandler(socket) {
     socket.data.username = payload.username;
 
     if (payload.role === "teacher") {
-      const roomId = createTeacherRoom(socket.id);
+      const { roomId, recoveryToken } = await createTeacherRoom(socket.id);
 
       const joinedPayload = {
         ...payload,
         roomId,
+        recoveryToken,
       };
 
       socket.data.roomId = roomId;
@@ -51,16 +52,19 @@ export function roomSocketHandler(socket) {
         return;
       }
 
-      const result = joinStudentRoom(roomId, socket.id);
+      const result = await joinStudentRoom(roomId, socket.id);
 
       if (result.error) {
         socket.emit("join-error", result.error);
         return;
       }
 
+      const recoveryToken = result.recoveryToken;
+
       const joinedPayload = {
         ...payload,
         roomId,
+        recoveryToken,
       };
 
       socket.data.roomId = roomId;

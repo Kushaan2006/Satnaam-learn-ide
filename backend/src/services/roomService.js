@@ -1,49 +1,71 @@
+import crypto from "crypto";
+import { redisClient } from "../config/redisClient";
+
 const rooms = new Map();
 
 function createRoomId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-function createUniqueRoomId() {
+async function createUniqueRoomId() {
   let roomId = createRoomId();
 
-  while (rooms.has(roomId)) {
+  while (await redisClient.exists(`room:${roomId}`)) {
     roomId = createRoomId();
   }
 
   return roomId;
 }
 
-export function createTeacherRoom(teacherSocketId) {
-  const roomId = createUniqueRoomId();
+export async function createTeacherRoom(teacherSocketId) {
+  const roomId = await createUniqueRoomId();
+  const recoveryToken = crypto.randomBytes(32).toString("hex");
 
-  rooms.set(roomId, {
-    teacher: teacherSocketId,
-    student: null,
+  const recoverTokenHash = crypto
+    .createHash("sha256")
+    .update(recoveryToken)
+    .digest("hex");
+
+  await redisClient.hSet(`room:${roomId}`, {
+    teacherTokenHash: recoverTokenHash,
+    studentTokenHash: "",
+    teacherConnected: "true",
+    studentConnected: "false",
   });
 
-  return roomId;
+  return { roomId, recoveryToken };
 }
 
-export function joinStudentRoom(roomId, studentSocketId) {
-  const room = rooms.get(roomId);
+export async function joinStudentRoom(roomId, studentSocketId) {
+  const room = await redisClient.hGetAll(`room:${roomId}`);
 
-  if (!room) {
+  if (Object.keys(room).length === 0) {
     return {
       error: "Room is either not in session or does not exist.",
     };
   }
 
-  if (room.student) {
+  if (room.studentTokenHash) {
     return {
       error: "Room already has a student.",
     };
   }
 
-  room.student = studentSocketId;
+  const recoveryToken = crypto.randomBytes(32).toString("hex");
+
+  const recoveryTokenHash = crypto
+    .createHash("sha256")
+    .update(recoveryToken)
+    .digest("hex");
+
+  await redisClient.hSet(`room:${roomId}`, {
+    studentTokenHash: recoveryTokenHash,
+    studentConnected: "true",
+  });
 
   return {
     room,
+    recoveryToken,
   };
 }
 
