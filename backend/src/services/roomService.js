@@ -69,20 +69,33 @@ export async function joinStudentRoom(roomId, studentSocketId) {
   };
 }
 
-export function removeUserFromRoom(roomId, role) {
-  const room = rooms.get(roomId);
+export async function removeUserFromRoom(roomId, role) {
+  const room = await redisClient.hGetAll(`room:${roomId}`);
 
-  if (!room) {
+  if (Object.keys(room).length === 0) {
     return;
   }
 
   if (role === "teacher") {
-    rooms.delete(roomId);
+    await redisClient.hSet(`room:${roomId}`, {
+      teacherConnected: "false",
+    });
     return;
   }
 
   if (role === "student") {
-    room.student = null;
+    await redisClient.hSet(`room:${roomId}`, {
+      studentConnected: "false",
+    });
+  }
+
+  const updatedRoom = await redisClient.hGetAll(`room:${roomId}`);
+  const bothDisconnected =
+    updatedRoom.teacherConnected === "false" &&
+    updatedRoom.studentConnected === "false";
+
+  if (bothDisconnected) {
+    await redisClient.expire(`room:${roomId}`, 7 * 60);
   }
 }
 

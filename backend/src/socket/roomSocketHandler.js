@@ -87,11 +87,11 @@ export function roomSocketHandler(socket) {
     );
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     const { roomId, role } = socket.data;
 
     if (roomId && role) {
-      removeUserFromRoom(roomId, role);
+      await removeUserFromRoom(roomId, role);
     }
 
     console.log(`Socket disconnected: ${socket.id}`);
