@@ -3,6 +3,8 @@ import http from "http";
 
 import { Server } from "socket.io";
 
+import { connectRedis } from "./config/redisClient.js";
+
 import app from "./app.js";
 import { registerSocketHandlers } from "./socket/socketHandlers.js";
 
@@ -21,8 +23,14 @@ const io = new Server(server, {
   },
 });
 
-registerSocketHandlers(io);
+try {
+  await connectRedis();
 
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+  registerSocketHandlers(io);
+
+  server.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+} catch (error) {
+  console.log("Server Startup Failed: ", error);
+}
