@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { redisClient } from "../config/redisClient.js";
+import { roomRedisClient } from "../config/roomRedisClient.js";
 
 function createRoomId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -8,7 +8,7 @@ function createRoomId() {
 async function createUniqueRoomId() {
   let roomId = createRoomId();
 
-  while (await redisClient.exists(`room:${roomId}`)) {
+  while (await roomRedisClient.exists(`room:${roomId}`)) {
     roomId = createRoomId();
   }
 
@@ -26,7 +26,7 @@ export async function createTeacherRoom(teacherSocketId) {
 
   console.log("Teacher recovery token created");
 
-  await redisClient.hSet(`room:${roomId}`, {
+  await roomRedisClient.hSet(`room:${roomId}`, {
     teacherTokenHash: recoverTokenHash,
     studentTokenHash: "",
     teacherConnected: "true",
@@ -39,7 +39,7 @@ export async function createTeacherRoom(teacherSocketId) {
 }
 
 export async function joinStudentRoom(roomId, studentSocketId) {
-  const room = await redisClient.hGetAll(`room:${roomId}`);
+  const room = await roomRedisClient.hGetAll(`room:${roomId}`);
 
   if (Object.keys(room).length === 0) {
     return {
@@ -62,7 +62,7 @@ export async function joinStudentRoom(roomId, studentSocketId) {
 
   console.log("Student Recovery Token Created");
 
-  await redisClient.hSet(`room:${roomId}`, {
+  await roomRedisClient.hSet(`room:${roomId}`, {
     studentTokenHash: recoveryTokenHash,
     studentConnected: "true",
   });
@@ -76,40 +76,40 @@ export async function joinStudentRoom(roomId, studentSocketId) {
 }
 
 export async function removeUserFromRoom(roomId, role) {
-  const room = await redisClient.hGetAll(`room:${roomId}`);
+  const room = await roomRedisClient.hGetAll(`room:${roomId}`);
 
   if (Object.keys(room).length === 0) {
     return;
   }
 
   if (role === "teacher") {
-    await redisClient.hSet(`room:${roomId}`, {
+    await roomRedisClient.hSet(`room:${roomId}`, {
       teacherConnected: "false",
     });
   }
 
   if (role === "student") {
-    await redisClient.hSet(`room:${roomId}`, {
+    await roomRedisClient.hSet(`room:${roomId}`, {
       studentConnected: "false",
     });
   }
 
   console.log(`Set ${role}'s connected status to false`);
 
-  const updatedRoom = await redisClient.hGetAll(`room:${roomId}`);
+  const updatedRoom = await roomRedisClient.hGetAll(`room:${roomId}`);
   const bothDisconnected =
     updatedRoom.teacherConnected === "false" &&
     updatedRoom.studentConnected === "false";
   console.log("checking room connection status");
 
   if (bothDisconnected) {
-    await redisClient.expire(`room:${roomId}`, 7 * 60);
+    await roomRedisClient.expire(`room:${roomId}`, 7 * 60);
     console.log("Expiry timer statred of 7mins on Room: ", roomId);
   }
 }
 
 export async function rejoinRoom(roomId, role, recoveryToken) {
-  const room = await redisClient.hGetAll(`room:${roomId}`);
+  const room = await roomRedisClient.hGetAll(`room:${roomId}`);
 
   if (Object.keys(room).length === 0) {
     console.log(`Rejoin Room: ${roomId} no longer exists`);
@@ -136,17 +136,17 @@ export async function rejoinRoom(roomId, role, recoveryToken) {
     };
   }
 
-  await redisClient.hSet(`room:${roomId}`, {
+  await roomRedisClient.hSet(`room:${roomId}`, {
     [role === "teacher" ? "teacherConnected" : "studentConnected"]: "true",
   });
 
   console.log(`Tokens Matched in ${roomId} for ${role}`);
 
-  await redisClient.persist(`room:${roomId}`);
+  await roomRedisClient.persist(`room:${roomId}`);
 
   console.log(`Reset ${roomId} expiry timer`);
 
-  await redisClient.hSet(`room:${roomId}`, {
+  await roomRedisClient.hSet(`room:${roomId}`, {
     [`${role}Connected`]: "true",
   });
 

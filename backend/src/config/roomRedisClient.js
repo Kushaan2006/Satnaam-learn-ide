@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { createClient } from "redis";
 
-export const redisClient = createClient({
+export const roomRedisClient = createClient({
   username: process.env.REDIS_USERNAME,
   password: process.env.REDIS_PASSWORD,
   socket: {
@@ -10,11 +10,11 @@ export const redisClient = createClient({
   },
 });
 
-redisClient.on("error", (err) => console.log("Redis Client Error", err));
+roomRedisClient.on("error", (err) => console.log("Redis Client Error", err));
 
-export const connectRedis = async () => {
-  if (!redisClient.isOpen) {
-    await redisClient.connect();
+export const connectRoomRedis = async () => {
+  if (!roomRedisClient.isOpen) {
+    await roomRedisClient.connect();
     console.log("Redis connected");
   }
 };

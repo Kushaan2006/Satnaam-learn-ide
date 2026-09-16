@@ -3,7 +3,7 @@ import http from "http";
 
 import { Server } from "socket.io";
 
-import { connectRedis } from "./config/redisClient.js";
+import { connectRoomRedis } from "./config/roomRedisClient.js";
 
 import app from "./app.js";
 import { registerSocketHandlers } from "./socket/socketHandlers.js";
@@ -24,7 +24,7 @@ const io = new Server(server, {
 });
 
 try {
-  await connectRedis();
+  await connectRoomRedis();
 
   registerSocketHandlers(io);
 
