@@ -1,8 +1,6 @@
 import crypto from "crypto";
 import { redisClient } from "../config/redisClient.js";
 
-const rooms = new Map();
-
 function createRoomId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
@@ -114,6 +112,8 @@ export async function rejoinRoom(roomId, role, recoveryToken) {
   const room = await redisClient.hGetAll(`room:${roomId}`);
 
   if (Object.keys(room).length === 0) {
+    console.log(`Rejoin Room: ${roomId} no longer exists`);
+
     return {
       error: "Room no longer exists.",
     };
@@ -127,11 +127,18 @@ export async function rejoinRoom(roomId, role, recoveryToken) {
   const storedTokenHash =
     role === "teacher" ? room.teacherTokenHash : room.studentTokenHash;
 
+  console.log(`Rejoin Room: validating tokens for ${role}`);
+
   if (recoveryTokenHash !== storedTokenHash) {
+    console.log(`Rejoin Room: failure managing tokens`);
     return {
       error: "Invalid recovery token.",
     };
   }
+
+  await redisClient.hSet(`room:${roomId}`, {
+    [role === "teacher" ? "teacherConnected" : "studentConnected"]: "true",
+  });
 
   console.log(`Tokens Matched in ${roomId} for ${role}`);
 

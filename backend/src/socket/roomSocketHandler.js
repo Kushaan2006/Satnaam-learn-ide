@@ -1,6 +1,7 @@
 import {
   createTeacherRoom,
   joinStudentRoom,
+  rejoinRoom,
   removeUserFromRoom,
 } from "../services/roomService.js";
 
@@ -84,6 +85,24 @@ export function roomSocketHandler(socket) {
     socket.emit("join-error", "Invalid role.");
     console.log(
       `${socket.data.roomId} - JOIN ERROR FOR (${socket.data.role}): ${socket.data.username}`,
+    );
+  });
+
+  socket.on("rejoin-room", async (payload) => {
+    const { roomId, username, role, recoveryToken } = payload;
+    const result = await rejoinRoom(roomId, role, recoveryToken);
+    console.log("SOCKET: Received Rejoin Data");
+    if (result.error) {
+      socket.emit("rejoin-error", result.error);
+      console.log("Socket, cant Rejoin the room");
+      return;
+    }
+    socket.data.roomId = roomId;
+    socket.data.role = role;
+    socket.data.username = username;
+    socket.join(socket.data.roomId);
+    console.log(
+      `Rejoined ${socket.data.roomId} for ${socket.data.role} ${socket.data.username}`,
     );
   });
 
