@@ -104,6 +104,10 @@ export function roomSocketHandler(socket) {
     console.log(
       `Rejoined ${socket.data.roomId} for ${socket.data.role} ${socket.data.username}`,
     );
+    socket.emit("room-restored", {
+      roomId,
+      role,
+    });
   });
 
   socket.on("disconnect", async () => {

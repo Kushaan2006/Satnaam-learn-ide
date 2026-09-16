@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { socket } from "../services/socket";
 
@@ -31,8 +31,13 @@ export default function SessionPage() {
   const [isRunning, setIsRunning] = useState(false);
 
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const details = location.state as JoinRoomPayload | null;
+  type SessionDetails = JoinRoomPayload & {
+    isRecovery?: boolean;
+  };
+
+  const details = location.state as SessionDetails | null;
 
   useEffect(() => {
     //ide- code updates
@@ -53,9 +58,55 @@ export default function SessionPage() {
     };
   }, []);
 
-  if (!details) {
+  useEffect(() => {
+    if (!details?.isRecovery || !details.recoveryToken) return;
+
+    const key = `coderoom:${details.roomId}:${details.role}`;
+
+    const savedData = JSON.parse(localStorage.getItem(key) || "{}");
+
+    const handleRoomRestored = () => {
+      const liveCode = savedData.studentCode || "";
+      const reviewCode = savedData.teacherCode || "";
+
+      // Show both cached versions
+      setStudentCode(liveCode);
+      setReviewCode(reviewCode);
+
+      // Send only OWN code
+      if (details.role === "student") {
+        socket.emit("live-code-update", liveCode);
+      }
+
+      if (details.role === "teacher") {
+        socket.emit("review-code-update", reviewCode);
+      }
+    };
+
+    const handleRejoinError = (message: string) => {
+      console.log("Rejoin failed:", message);
+      navigate("/", {
+        replace: true,
+      });
+    };
+
+    // Listen FIRST
+    socket.once("room-restored", handleRoomRestored);
+    socket.once("rejoin-error", handleRejoinError);
+
+    // Then ask backend to rejoin
+    socket.emit("rejoin-room", details);
+
+    return () => {
+      socket.off("room-restored", handleRoomRestored);
+      socket.off("rejoin-error", handleRejoinError);
+    };
+  }, [details, navigate]);
+
+  if (!details) return <Navigate to="/" replace />;
+
+  if (details.isRecovery && !details.recoveryToken)
     return <Navigate to="/" replace />;
-  }
 
   const updateExecution = ({ isRunning, output }: ExecutionUpdate) => {
     setIsRunning(isRunning);

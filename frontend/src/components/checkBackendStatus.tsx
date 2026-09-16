@@ -20,6 +20,7 @@ export default function CheckBackendStatus() {
       const data = await response.json();
       setMsg(data.message);
       setConnectionStatus("success");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       setMsg("Could not Connect to Backend");
       setConnectionStatus("error");

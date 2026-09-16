@@ -6,6 +6,7 @@ import { socket } from "../services/socket";
 import type { JoinRoomPayload, Role } from "../types/session.types";
 
 import logo_horizontal_light from "../assets/logo_horizontal_light.png";
+import SavedSessions from "../components/Sessions/SavedSessions";
 
 export default function JoinRoomPage() {
   const backendURL = import.meta.env.VITE_SERVER_URL;
@@ -17,35 +18,16 @@ export default function JoinRoomPage() {
 
   const navigate = useNavigate();
 
-  const getSavedSessions = () => {
-    const sessions = [];
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-
-      if (!key?.startsWith("coderoom:")) continue;
-
-      const [, roomId, role] = key.split(":");
-
-      sessions.push({
-        key,
-        roomId,
-        role,
-      });
-    }
-
-    return sessions;
-  };
-
   useEffect(() => {
     const handleJoinedRoom = (payload: JoinRoomPayload) => {
       const key = `coderoom:${payload.roomId}:${payload.role}`;
       localStorage.setItem(
         key,
         JSON.stringify({
+          username: payload.username,
           recoveryToken: payload.recoveryToken,
-          myCode: "",
-          otherCode: "",
+          teacherCode: "",
+          studentCode: "",
         }),
       );
 
@@ -63,9 +45,6 @@ export default function JoinRoomPage() {
       setErrorMessage(message);
     };
 
-    const sessions = getSavedSessions();
-    console.log("Sessions found: ", sessions);
-
     socket.on("joined-room", handleJoinedRoom);
     socket.on("join-error", handleJoinError);
 
@@ -73,7 +52,7 @@ export default function JoinRoomPage() {
       socket.off("joined-room", handleJoinedRoom);
       socket.off("join-error", handleJoinError);
     };
-  }, [navigate]);
+  }, []);
 
   const checkBackend = async (): Promise<boolean> => {
     try {
@@ -126,6 +105,7 @@ export default function JoinRoomPage() {
 
   return (
     <main className="min-h-screen bg-base-200 flex items-center justify-center p-4">
+      <div></div>
       <div className="aura aura-rainbow aura-lg">
         <form
           className="card w-full max-w-md bg-base-100 shadow-xl"
@@ -148,6 +128,8 @@ export default function JoinRoomPage() {
                 Create or join a live coding session.
               </p>
             </div>
+
+            <SavedSessions />
 
             {/* Username */}
             <fieldset className="fieldset">
