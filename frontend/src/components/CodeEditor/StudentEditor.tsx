@@ -1,18 +1,14 @@
 import { cpp } from "@codemirror/lang-cpp";
-import CodeMirror, { oneDark, StateEffectType } from "@uiw/react-codemirror";
+import CodeMirror, { oneDark } from "@uiw/react-codemirror";
 import { socket } from "../../services/socket";
 import { useEffect, type Dispatch, type SetStateAction } from "react";
-import type { Role } from "../../types/session.types";
+import type { JoinRoomPayload } from "../../types/session.types";
 
 type StudentEditorProps = {
   studentCode: string;
   setStudentCode: Dispatch<SetStateAction<string>>;
   setReviewCode: Dispatch<SetStateAction<string>>;
-  details: {
-    username: string;
-    roomId: string;
-    role: Role;
-  };
+  details: JoinRoomPayload;
 };
 
 export default function StudentEditor({
@@ -24,6 +20,17 @@ export default function StudentEditor({
   useEffect(() => {
     const handleLiveCodeUpdated = (newCode: string) => {
       setStudentCode(newCode);
+      const key = `coderoom:${details.roomId}:${details.role}`;
+
+      const oldData = JSON.parse(localStorage.getItem(key) || "{}");
+
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          ...oldData,
+          studentCode: newCode,
+        }),
+      );
     };
 
     socket.on("live-code-updated", handleLiveCodeUpdated);
@@ -55,6 +62,18 @@ export default function StudentEditor({
 
     setStudentCode(value);
     socket.emit("live-code-update", value);
+
+    const key = `coderoom:${details.roomId}:${details.role}`;
+
+    const oldData = JSON.parse(localStorage.getItem(key) || "{}");
+
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        ...oldData,
+        studentCode: value,
+      }),
+    );
 
     if (shouldUpdateReview(value, previousValue)) {
       setReviewCode(value);

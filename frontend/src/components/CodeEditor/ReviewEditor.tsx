@@ -1,5 +1,5 @@
 import CodeMirror, { oneDark } from "@uiw/react-codemirror";
-import { useEffect, useState, type SetStateAction } from "react";
+import { useEffect } from "react";
 import { socket } from "../../services/socket";
 import { cpp } from "@codemirror/lang-cpp";
 import type { Role } from "../../types/session.types";
@@ -28,6 +28,17 @@ export default function ReviewEditor({
       role: string;
     }) => {
       setReviewCode(code);
+      const key = `coderoom:${details.roomId}:${details.role}`;
+
+      const oldData = JSON.parse(localStorage.getItem(key) || "{}");
+
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          ...oldData,
+          teacherCode: code,
+        }),
+      );
       console.log(`${roomId} - Review sent by (${role}): ${username}`);
     };
 
@@ -46,6 +57,17 @@ export default function ReviewEditor({
     setReviewCode(value);
 
     socket.emit("review-code-update", value);
+    const key = `coderoom:${details.roomId}:${details.role}`;
+
+    const oldData = JSON.parse(localStorage.getItem(key) || "{}");
+
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        ...oldData,
+        teacherCode: value,
+      }),
+    );
     console.log(
       `${details.roomId} - Review code edited by: ${details.username}`,
     );
