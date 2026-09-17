@@ -5,6 +5,7 @@ import { useEffect, type Dispatch, type SetStateAction } from "react";
 import type { JoinRoomPayload } from "../../types/session.types";
 
 type StudentEditorProps = {
+  runButton: React.ReactNode;
   studentCode: string;
   setStudentCode: Dispatch<SetStateAction<string>>;
   setReviewCode: Dispatch<SetStateAction<string>>;
@@ -12,6 +13,7 @@ type StudentEditorProps = {
 };
 
 export default function StudentEditor({
+  runButton,
   studentCode,
   setStudentCode,
   setReviewCode,
@@ -86,13 +88,16 @@ export default function StudentEditor({
         <header className="flex items-center justify-between border-b border-base-300 px-4 py-3">
           <div>
             <h2 className="font-semibold">Student Workspace</h2>
-
-            <p className="text-xs text-base-content/60">
-              {details.role === "student" ? "Editable" : "Read only"}
-            </p>
+            <div>
+              <p className="text-xs text-base-content/60">
+                {details.role === "student" ? "Editable" : "Read only"}
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {runButton}
+
             <span
               className={`badge badge-sm ${
                 details.role === "student" ? "badge-success" : "badge-ghost"

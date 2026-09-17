@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, Link } from "react-router-dom";
 
 import { socket } from "../services/socket";
+
+import logo_fin from "../assets/logo_fin.png";
 
 import type { JoinRoomPayload } from "../types/session.types";
 import RunButton from "../components/RunButton";
@@ -171,33 +173,51 @@ export default function SessionPage() {
   return (
     <main className="flex min-h-screen flex-col bg-base-200">
       {/* Top navbar */}
-      <header className="navbar border-b border-base-300 bg-base-100 px-4 shadow-sm">
-        <div className="flex-1">
-          <div>
-            <h1 className="text-xl font-bold">Learn IDE</h1>
+      <header className="navbar min-h-16 border-b border-base-300 bg-base-100 px-5 shadow-sm">
+        <div className="flex flex-1 items-center gap-4">
+          <Link to="/">
+            <img
+              src={logo_fin}
+              alt="Learn IDE"
+              className="h-10 w-auto object-contain"
+            />
+          </Link>
 
-            <p className="text-sm text-base-content/60">
-              Room:
-              <span className="ml-1 font-bold">{details.roomId}</span>
-            </p>
+          <div className="h-8 w-px bg-base-300" />
+
+          <div className="flex flex-col">
+            <span className="text-xs font-medium uppercase tracking-wide text-base-content/50">
+              Room
+            </span>
+
+            <span className="font-mono text-sm font-semibold">
+              {details.roomId}
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* <VoiceControls role={details.role} roomId={details.roomId} /> */}
-          <VoiceControls
-            roomId={details.roomId}
-            username={details.username}
-            role={details.role}
-          />
+        <div className="flex items-center gap-4">
+          <VoiceControls />
+
+          <div className="hidden h-8 w-px bg-base-300 sm:block" />
+
           <div className="hidden text-right sm:block">
-            <p className="text-sm font-medium">{details.username}</p>
-            <p className="text-xs capitalize text-base-content/60">
+            <p className="text-sm font-semibold leading-tight">
+              {details.username}
+            </p>
+
+            <p className="text-xs capitalize text-base-content/50">
               {details.role}
             </p>
           </div>
 
-          <div className="badge badge-primary capitalize">{details.role}</div>
+          <div
+            className={`badge capitalize ${
+              details.role === "student" ? "badge-success" : "badge-primary"
+            }`}
+          >
+            {details.role}
+          </div>
         </div>
       </header>
 
@@ -206,8 +226,8 @@ export default function SessionPage() {
         {/* Editors */}
         <section className="grid flex-1 grid-cols-1 gap-4 xl:grid-cols-2">
           {/* Student editor */}
-          <RunButton isRunning={isRunning} onRun={runCode} />
           <StudentEditor
+            runButton={<RunButton isRunning={isRunning} onRun={runCode} />}
             studentCode={studentCode}
             setStudentCode={setStudentCode}
             setReviewCode={setReviewCode}
