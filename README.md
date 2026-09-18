@@ -1,10 +1,5 @@
 CodeRoom
-So, ever since I was in Grade 9, I have been fortunate to tutor many juniors and my own classmates on programming languages. However I always wished if there was 1 platform where student may write code, teacher may write code and explain, teacher can review code, there is an inbuilt compiler, you can enter input aswell and everything mentioned so far happens in real time and update reflects on both ends. This very wish mentioned above is CodeRoom, where you can tutor students or simply review code.
-
-Dependencies:
-Frontend: React, Vite, CodeMirror, Socket.io
-Backend: Node, Express, Socket.io, Redis, BullMQ
-Compiler-Service: Node, Express, Redis, BullMQ, Docker
+So, ever since I was in Grade 9, I have been fortunate to tutor many juniors and my own classmates on programming languages. However I always wished if there was 1 platform where student may write code, teacher may write code and explain, teacher can review code, there is an inbuilt compiler, you can enter input aswell and everything mentioned so far happens in real time and update reflects on both ends. This very wish mentioned above is CodeRoom, where you can tutor students or simply review code. And also to have a better user experience, no authentication was added as we wanted it to be ready and go with minimum number of clicks so anyone can use CodeRoom without need of any account (we can change this in future if this feature is abused) another project that shows use of authentication and authorization is our LinklyWinkly.
 
 Problem it solves:
 As mentioned in description of project, the goal was to have 1 platform where there is synchronised coding, reviewing, compiling system.
@@ -16,18 +11,38 @@ https://satnaamcoderoom.vercel.app/
 
 Note: The current backend is on Render and if the server is inactive it might take upto 30-50sec for it to run. So it might take some time, dont panic, the application is not broken.
 
+Features:
+Real-time synchronized code editing
+Separate teacher and student workspaces
+Live code review
+C++ compilation
+Custom stdin input
+Isolated Docker execution
+Real-time room state
+Compilation queue with controlled concurrency
+
+Language Supported: C++, C (in C++)
+
+Future Vision: Add AI driven room where a student could simply ask for code review, like find bug and explain, advise improvement, etc.
+
+Dependencies:
+Frontend: React, Vite, CodeMirror, Socket.io
+Backend: Node, Express, Socket.io, Redis, BullMQ
+Compiler-Service: Node, Express, Redis, BullMQ, Docker
+
+ARCHITECTURE
+The architecture of project doesnt follow a strict single type but rather a mix of 3, primarily its a layered architecture type but it consists of elements of event driven (due to socket.io) and service based (due to sepration of compiler service) architecture.
+<img width="5821" height="2777" alt="Final Architecture Diagram" src="https://github.com/user-attachments/assets/49f9bab1-9b61-459f-bc37-a9fb35eec71d" />
 
 Development Journey:
-Well originally this project was made in a monolithic format with backend and compiler service as a single backend and no Redis components to handle Rooms and compialtion queue was simply non-existent, but the issue was that there was no hosting platform that could handle the custom Docker commands that this project required, so quickly a solution was found that we can use the free Oracle VM and host it there, the frontend on vercel and connect them both. We also faced many issues through this 2 month journey of making 1.0.0 possible, in this development journey we have mentioned few of those issues that we thought caused siginificant change in our design decisions and overall system architectures.
-
-Issue: Need of synchronised code.
+Well originally this project was made in a monolithic format with backend and compiler service as a single backend and no Redis components to handle Rooms and compialtion queue was simply non-existent, but the issue was that there was no hosting platform that could handle the custom Docker commands that this project required, so quickly a solution was found that we can use the free Oracle VM and host it there, the frontend on vercel and connect them both. We also faced many issues through this 2 month journey of making 1.0.0 possible, in this development journey we have mentioned few of those issues that we thought caused siginificant change in our design decisions and overall system architectures, improvement of scalability has also been mentioned in all the issues below as it seemed unfair to create a special issue over scalability when one way or other all the issues mentioned below impacted it and were solved sequentially.
 
 
-Issue 1: Unsafe compilation, The first issue was how to make compilation safe, as any machine could run a c++ program but that means if User tries to run something malicious, then it could crash the VM or obvioiusly cause security risk to other users.
+Issue 1: Unsafe compilation, In planning stage, one of the issue was how to make compilation safe, as any machine could run a c++ program but that means if User tries to run something malicious, then it could crash the VM, give access or obvioiusly cause security risk to other users.
 
 Solution: Instead of making execute natively on the vm, we decided if we could make it execute inside a docker container with limited resources, a TTL and no network access, no matter what kind of code the user exectues it wont cause problem on our main machine. Hence, we used Docker and now every execution creates a brand new container that has TTL of 10s (we believe its a reasonable limit for now) and has limited system resources access and also no network access. This improves security.
 
-Issue 2: The first difficulty was that VM's public IP had to be linked to a domain so as to our frontend could connect to it so a free domain was generated (this caused problems of its own and will be discussed later in issue 4). Secondly, there was alot of custom configuration in firewall of the VM to allow connection to frontend.But main issue was that our backend could only communicate through HTTP, connection between it and vercel (which used HTTPS) simply wasnt possible and writing the express app to use HTTPs instead was a tedious task.
+Issue 2: One of the first difficulty was that VM's public IP had to be linked to a domain so as to our frontend could connect to it so a free domain was generated (this caused problems of its own and will be discussed later in issue 4). Secondly, there was alot of custom configuration in firewall of the VM to allow connection to frontend.But main issue was that our backend could only communicate through HTTP, connection between it and vercel (which used HTTPS) simply wasnt possible and writing the express app to use HTTPs instead was a tedious task.
 
 Solution: Nginx was used as reverse proxy, the backend ran on the localhost and Nginx  handeled the HTTPS request and response by acting as a bridge between our frontend's connection to Server (over HTTPS) and our backend's connection to Nginx (over HTTP)
 It was roughly like
@@ -44,14 +59,20 @@ Issue 4: Backend Blocked by Many Networks/DNS, as our Backend was originally dep
 
 Solution: The solution was simple as our Compiler-Service and Main Backend were now separated, it was decided that for the best and avoiding this block, lets deploy our main backend on a platform which is trusted and well known as that would mean, its possibly not blocked by user networks and DNS' hence our frontend can connect to it without issue. And then we instead host only and only Compiler-Service on our VM (this would also reduce overhead for each compilation request) and connect our main backend to it directly, this way frontend would not have direct connection to the Oracle VM and our main backend would connect. Now our Frontend is on Vercel, Backend is on Render and our Compiler Service runs on Oracle VM which our main backend connects to without any issue.
 
-Issue: Unsecure Connection at Compiler Service
+Issue 5: Unsecure Connection at Compiler Service. When out compile-service was finally seprated as a seprate service that anyone can call, it literally meant "anyone" can call. Anybody with the domain name could just simply do /compileMyCpp (not actual path) and send a POST request with JSON body which could create spam attacks and just overload our server, moreover our compiler container takes too much resources so that was another issue branching from spams.
+
+Solution: So to prevent this we added S2S authentication, an api-key was produced and given to both the backend and our compiler service and an S2S authentication middleware was introduced which made sure that its only the backend that creates this request and nobody could manually do it, now the compile-service was safe and secure. PS: Now this functionality has been removed as the Backend and Compiler-Service no longer call each other over HTTP (We talk more about this in Issue 6) , but still for security in case somebody found our api link, the middleware is still left unotuched, so even now it would block a human from accessing/calling it.
 
 
-Issue 5: Overwhelming the VM. Our compiler service didnt have any limits on as to how many compilations per time, the VM had limited resources, and more than 4 compilations together began to slow it down, preventing crash and improving uptime and performance was major concern here.
+Issue 6: Overwhelming the VM. Our compiler service didnt have any limits on as to how many compilations per time, the VM had limited resources, and more than 4 compilations together began to slow it down, preventing crash and improving uptime and performance was major concern here.
 
 Solution: Instead of sending compilation request over HTTPS to our Service (originally our service used SaaS Authentication), we instead decided to link our compilerController on Backend and our Compilation Service on Compiler-Service with over Redis and introduce a BullMQ compile request queue. Now the Backend became a producer and sent items into the queue whcih were stored in redis that connected both the backend and compiler-service and the compiler-service acted as a worker and only worked on 3 requests at a time and then send back the result and delete the request from the redis so as to not overwhelm it. This improved performance and uptime. Obviously, at this scale it works very smoothly and fine but if this project was to grow then we would need more powerful machines in much quantity as with current setup its possible a user might have to wait many minutes before their compilation request could be fulfiled if all the services are at capacity.
 
+Other issues:
 
+Issue : Need of synchronised code. Well one of the visions of this project was real time sync of code, whenever code changes, review code changes, input changes or run button is pressed and output is recieved we wanted those changes to reflect on both side.
+
+Solution: usage of socket.io eliminated this issue entirely, the code and any component coudlve been synchronized, socket.io client lives in the react frontend, and our backend works with validating socket.io data and emiting an event (with data) for a listener. The socket.io is handeled by useEffect which creates both eventListener upon mounting of component linked to it, and also destroys it upon unmounting
 
 Local Installation:
 
@@ -82,10 +103,6 @@ REDIS_PORT=
 //Redis-Queue Data
 COMPILE_QUEUE_REDIS_URL=
 
-//Compiler Microservice
-COMPILER_SERVICE_URL="
-COMPILER_SERVICE_API_KEY=
-
 compiler-service' .env
 PORT=4000
 COMPILER_SERVICE_API_KEY=
@@ -97,7 +114,5 @@ frontend's .env
 VITE_SERVER_URL=http://localhost:3000
 
 
-ARCHITECTURE
-The architecture of project doesnt follow a strict single type but rather a mix of 3, primarily its a layered architecture type but it consists of elements of event driven (due to socket.io) and service based (due to sepration of compiler service) architecture.
-<img width="5821" height="2777" alt="Final Architecture Diagram" src="https://github.com/user-attachments/assets/49f9bab1-9b61-459f-bc37-a9fb35eec71d" />
+
 
