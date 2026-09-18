@@ -216,6 +216,32 @@ Obviously, at this scale it works very smoothly, but if this project were to gro
 
 ---
 
+## Issue 7: Statelessness of the Program
+
+If a user disconnected or closed the window, then the main problem was: the code, the room? Gone. You couldn't get it back.
+
+This was problematic because a user could sometimes accidentally click back or exit the window.
+
+### Solution
+
+To tackle this issue, we stored in Redis not only the Room ID, but also the status of whether the student and teacher are connected or not, along with their recovery tokens.
+
+The recovery token's hash is stored in Redis instead of the raw token, so in case a data leak is experienced (low chance), the recovery tokens would be pretty useless as only their hashes are stored.
+
+The recovery tokens are generated once a user creates or joins a room, and they are stored in local storage along with the user's code and the other person's code.
+
+If a user disconnects and the other user is still there, the room remains present.
+
+Now, whenever the disconnected user opens CodeRoom again, the option to rejoin will be given on the Join page. Once the user clicks on it, first the recovery token is hashed and matched with the hash present in Redis, and then the room is rejoined.
+
+The user's own code is also sent back through Socket.io to the person in front, as behind the scenes the user could've simply changed it while disconnected.
+
+If both users of the room exit, then a TTL of 7 minutes starts. After that, the room will be permanently deleted.
+
+**Work in Progress:** Display code from previous rooms even after the room has been deleted.
+
+---
+
 # Other Issues
 
 ## Issue: Need for Synchronised Code
