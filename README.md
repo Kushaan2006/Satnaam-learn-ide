@@ -130,7 +130,7 @@ and this nicely handled our first issue.
 
 ---
 
-## Issue 3: Scalability
+## Issue 3: Duplicate Rooms and lack of separate components
 
 Due to this monolithic state, our project had basically no scalability.
 
