@@ -262,7 +262,7 @@ Socket.io is handled using `useEffect`, which creates the required event listene
 
 # Local Installation
 
-> **Note:** If you want to run this locally, you might need to set up your own Redis databases for Room Service and the Compile Request Queue, and configure the connection parameters. If you are using the same Redis hosts as the project (Redis for RoomService and Upstash for the Compile Request Queue), add the required values to `.env`. Otherwise, customise the config files and `.env` yourself.
+> **Note:** If you want to run this locally, you might need to set up your own Redis databases for Room Service and the Compile Request Queue, and configure the connection parameters. If you are using the same Redis hosts as the project (Redis for RoomService and ~~Upstash~~ Aiven.io Valkey Service for the Compile Request Queue), add the required values to `.env`. Otherwise, customise the config files and `.env` yourself.
 
 ## Pre-requisites
 
