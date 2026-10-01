@@ -10,8 +10,6 @@ Ever since I was in Grade 9, I have been fortunate to tutor many juniors and my 
 
 This very wish mentioned above is CodeRoom, where you can tutor students or simply review code.
 
-Also, to provide a better user experience, no authentication was added, as we wanted it to be ready to go with a minimum number of clicks so anyone can use CodeRoom without needing an account. We can change this in the future if this feature is abused. Another project that demonstrates authentication and authorization is our [LinklyWinkly](https://github.com/Kushaan2006/Satnaam_Link_Shortner).
-
 ---
 
 ## Problem It Solves
